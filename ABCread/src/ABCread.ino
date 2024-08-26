@@ -18,7 +18,7 @@
 #define SWITCH_ON HIGH
 #define SWITCH_OFF LOW
 
-const static bool verbose = false;
+const static bool verbose = true;
 const static bool display = true;
 static float maximal_current = 800; // maximal current in mA
 
@@ -26,11 +26,13 @@ static ADS1115 Ameter_1;
 static float resolution_1 = 0.0;
 static float calibration_factor_1 = 0.0;
 static float current_1 = 0.0;
+static float current_1_prev = current_1;
 
 static ADS1115 Ameter_2;
 static float resolution_2 = 0.0;
 static float calibration_factor_2 = 0.0;
 static float current_2 = 0.0;
+static float current_2_prev = current_2;
 
 
 
@@ -58,12 +60,15 @@ void setup_ammeters() {
     Ameter_1.setEEPROMAddr(M5_UNIT_AMETER_EEPROM_I2C_ADDR);
     Ameter_1.setMode(ADS1115_MODE_SINGLESHOT);
     Ameter_1.setRate(ADS1115_RATE_8);
-    Ameter_1.setGain(ADS1115_PGA_512);
+    Ameter_1.setGain(ADS1115_PGA_256);
 
     resolution_1 = Ameter_1.getCoefficient() / M5_UNIT_AMETER_PRESSURE_COEFFICIENT;
     calibration_factor_1 = Ameter_1.getFactoryCalibration();
     if (verbose) {
-        Serial.println("Ammeter 1 successfully initialized");
+        Serial.print("Ammeter 1 successfully initialized with resolution: ");
+        Serial.print(resolution_1);
+        Serial.print(" and calibration factor: ");
+        Serial.println(calibration_factor_1);
     }
 
         while (!Ameter_2.begin(&Wire, M5_UNIT_AMETER_2_I2C_ADDR, 32, 33, 400000UL)) {
@@ -73,12 +78,15 @@ void setup_ammeters() {
     Ameter_2.setEEPROMAddr(M5_UNIT_AMETER_EEPROM_I2C_ADDR);
     Ameter_2.setMode(ADS1115_MODE_SINGLESHOT);
     Ameter_2.setRate(ADS1115_RATE_8);
-    Ameter_2.setGain(ADS1115_PGA_512);
+    Ameter_2.setGain(ADS1115_PGA_256);
 
     resolution_2 = Ameter_2.getCoefficient() / M5_UNIT_AMETER_PRESSURE_COEFFICIENT;
     calibration_factor_2 = Ameter_2.getFactoryCalibration();
     if (verbose) {
-        Serial.println("Ammeter 2 successfully initialized");
+        Serial.print("Ammeter 2 successfully initialized with resolution: ");
+        Serial.print(resolution_2);
+        Serial.print(" and calibration factor: ");
+        Serial.println(calibration_factor_2);
     }
 }
 
@@ -96,6 +104,10 @@ float measure_current(ADS1115* Ameter, float resolution, float calibration_facto
 }
 
 void displayLatestCurrents(){
+    if (current_1 == current_1_prev and current_1 == current_2_prev) return;
+    current_1_prev = current_1;
+    current_2_prev = current_2;
+    M5.Lcd.fillScreen(BLACK);
     M5.Lcd.setCursor(0, 0);
     M5.Lcd.setTextSize(2);
     M5.Lcd.setTextColor(YELLOW);
@@ -197,6 +209,7 @@ void command_handler(String command){
 void setup() {
   //Serial.begin(BAUD_RATE); // Initialised in M5.begin()
     M5.begin();
+    delay(2000);
     Serial.println("M5StickC started");
     setup_switches();
     setup_ammeters();
