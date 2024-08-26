@@ -18,7 +18,7 @@
 #define SWITCH_ON HIGH
 #define SWITCH_OFF LOW
 
-const static bool verbose = true;
+const static bool verbose = false;
 const static bool display = true;
 static float maximal_current = 800; // maximal current in mA
 
@@ -118,6 +118,8 @@ void limit_current(float current_1, float current_2){
 }
 
 void command_handler(String command){
+      // Serial.print("Command was: ");
+      // Serial.println(command);
       if (command == "Init"){ // clear the serial buffer  
         clearSerialBuffer();
         Serial.println("Buffer successfully reset");
@@ -212,7 +214,7 @@ void setup() {
 
 void loop() {
 
-    for (int i = 0; i < 20; i++){ // wait for 20 * 50 ms hence update value every second not requested
+    for (int i = 0; i < 10; i++){ // wait for 10 * 50 ms hence update value every second not requested
         if (Serial.available() > 0) {
             // Read the incoming command
             String command = Serial.readStringUntil('\n');
@@ -227,5 +229,5 @@ void loop() {
     if (verbose) Serial.printf("Current 1: %.2f mA, Current 2: %.2f mA\n", current_1, current_2);
     if (display) displayLatestCurrents();
     limit_current(current_1, current_2);  
-    delay(100);
+    delay(10);
 }
