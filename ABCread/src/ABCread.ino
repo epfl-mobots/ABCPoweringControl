@@ -26,15 +26,11 @@ static ADS1115 Ameter_1;
 static float resolution_1 = 0.0;
 static float calibration_factor_1 = 0.0;
 static float current_1 = 0.0;
-static float current_1_prev = current_1;
 
 static ADS1115 Ameter_2;
 static float resolution_2 = 0.0;
 static float calibration_factor_2 = 0.0;
 static float current_2 = 0.0;
-static float current_2_prev = current_2;
-
-
 
 void clearSerialBuffer() {
     while (Serial.available() > 0) {
@@ -104,9 +100,6 @@ float measure_current(ADS1115* Ameter, float resolution, float calibration_facto
 }
 
 void displayLatestCurrents(){
-    if (current_1 == current_1_prev and current_1 == current_2_prev) return;
-    current_1_prev = current_1;
-    current_2_prev = current_2;
     M5.Lcd.fillScreen(BLACK);
     M5.Lcd.setCursor(0, 0);
     M5.Lcd.setTextSize(2);
