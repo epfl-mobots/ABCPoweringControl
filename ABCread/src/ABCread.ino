@@ -128,21 +128,23 @@ void displayLatestCurrents(){
 }
 
 void limit_current(float current1, float current2){
-  if (get_current1() > maximal_current){
+  if (abs(get_current1()) > maximal_current){
     digitalWrite(SWITCH_1_PIN, SWITCH_OFF);
   }
-  else if(get_current2() > maximal_current){
+  else if(abs(get_current2()) > maximal_current){
     digitalWrite(SWITCH_2_PIN, SWITCH_OFF);
   } 
 }
 
 void command_handler(String command){
       command.trim();
-      Serial.print("Command was: ");
-      Serial.println(command);
+      // Serial.print("Command was: ");
+      // Serial.println(command);
       if (command == "Init"){ // clear the serial buffer  
         clearSerialBuffer();
-        Serial.println("Buffer successfully reset");
+        digitalWrite(SWITCH_1_PIN, SWITCH_ON);  // Turn on SWITCH 1
+        digitalWrite(SWITCH_2_PIN, SWITCH_ON);  // Turn on SWITCH 2
+        Serial.println("Buffer successfully reset, switches turned on");
       }
       else if (command == "Measure current 0")
       {
@@ -173,7 +175,7 @@ void command_handler(String command){
         }
       else if (command == "Switch 1 on"){
       
-              digitalWrite(SWITCH_1_PIN, SWITCH_OFF);  // Turn off SWITCH 1
+              digitalWrite(SWITCH_1_PIN, SWITCH_ON);  // Turn off SWITCH 1
               Serial.println("SWITCH 1 turned on");
 
       }
@@ -185,13 +187,13 @@ void command_handler(String command){
       }
       else if (command == "Switch 2 on"){
       
-              digitalWrite(SWITCH_2_PIN, SWITCH_OFF);  // Turn off SWITCH 1
+              digitalWrite(SWITCH_2_PIN, SWITCH_ON);  // Turn on SWITCH 1
               Serial.println("SWITCH 2 turned on");
 
       }
       else if (command == "Switch 2 off"){
       
-              digitalWrite(SWITCH_2_PIN, SWITCH_OFF);  // Turn off SWITCH 1
+              digitalWrite(SWITCH_2_PIN, SWITCH_OFF);  // Turn of SWITCH 1
               Serial.println("SWITCH 2 turned off");
 
       }
@@ -210,8 +212,7 @@ void command_handler(String command){
       else if (command.startsWith("Max current ")){
         String maxCurrentStr = command.substring(12); // 12 is length of "Max current "
         
-        float maxCurrentValue = maxCurrentStr.toFloat(); // Convert to float
-        
+        float maxCurrentValue = maxCurrentStr.toFloat(); // Convert to float        
         maximal_current = maxCurrentValue;
         Serial.print("Maximal current set to: ");
         Serial.println(maximal_current);
