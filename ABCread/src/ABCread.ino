@@ -32,12 +32,29 @@ static float resolution_2 = 0.0;
 static float calibration_factor_2 = 0.0;
 static float current_2 = 0.0;
 
+unsigned long previousMillis = 0;
+const long interval = 500;  // Interval to compare current (in milliseconds)
+
+
+// Getter functions
+static float get_current1() {
+    return current_1;
+}
+
+static float get_current2() {
+    return current_2;
+}
+
 void clearSerialBuffer() {
     while (Serial.available() > 0) {
         Serial.read();
     }
     Serial.flush();
 }
+
+String inputString = "";  
+bool stringComplete = false;
+
 
 void setup_switches(){
     pinMode(SWITCH_1_PIN, OUTPUT);
@@ -104,15 +121,15 @@ void displayLatestCurrents(){
     M5.Lcd.setCursor(0, 0);
     M5.Lcd.setTextSize(2);
     M5.Lcd.setTextColor(YELLOW);
-    M5.Lcd.printf("Current 1: %.2f mA\n", current_1);
-    M5.Lcd.printf("Current 2: %.2f mA\n", current_2);
+    M5.Lcd.printf("Current 1: %.2f mA\n", get_current());
+    M5.Lcd.printf("Current 2: %.2f mA\n", get_current());
 }
 
-void limit_current(float current_1, float current_2){
-  if (current_1 > maximal_current){
+void limit_current(float get_current()1(), float get_current2()){
+  if (get_current1() > maximal_current){
     digitalWrite(SWITCH_1_PIN, SWITCH_OFF);
   }
-  else if(current_2 > maximal_current){
+  else if(get_current2() > maximal_current){
     digitalWrite(SWITCH_2_PIN, SWITCH_OFF);
   } 
 }
@@ -130,10 +147,10 @@ void command_handler(String command){
         current_1 = measure_current(&Ameter_1, resolution_1, calibration_factor_1);
         current_2 = measure_current(&Ameter_2, resolution_2, calibration_factor_2);
         Serial.print("I1 = ");
-        Serial.print(current_1);
+        Serial.print(get_current1());
         Serial.print("mA, ");
         Serial.print("I2 = ");
-        Serial.print(current_2);
+        Serial.print(get_current2());
         Serial.println("mA");
         }
       else if (command == "Measure current 1")
@@ -141,14 +158,14 @@ void command_handler(String command){
         Serial.print("Measuring current 1 -> ");
         current_1 = measure_current(&Ameter_1, resolution_1, calibration_factor_1);
         Serial.print("I1 = ");
-        Serial.print(current_1);
+        Serial.print(get_current1());
         Serial.println("mA");        }
       else if (command == "Measure current 2")
       {
         Serial.print("Measuring current 2 -> ");
         current_2 = measure_current(&Ameter_2, resolution_2, calibration_factor_2);
         Serial.print("I2 = ");
-        Serial.print(current_2);
+        Serial.print(get_current2());
         Serial.println("mA");        
         }
       else if (command == "Switch 1 on"){
@@ -212,22 +229,60 @@ void setup() {
    clearSerialBuffer();
 }
 
-void loop() {
+// // version 27.8.2024 seems to be working well but question was about serial read: does it wait most of the time and not do much at all
+// void loop() {
 
-    for (int i = 0; i < 10; i++){ // wait for 10 * 50 ms hence update value every second not requested
-        if (Serial.available() > 0) {
-            // Read the incoming command
-            String command = Serial.readStringUntil('\n');
-            // delay(20);
-            command_handler(command);
+//     for (int i = 0; i < 10; i++){ // wait for 10 * 50 ms hence update value every second not requested
+//         if (Serial.available() > 0) {
+//             // Read the incoming command
+//             String command = Serial.readStringUntil('\n');
+//             // delay(20);
+//             command_handler(command);
+//         }
+//         delay(49);
+//     }
+
+//     current_1 = measure_current(&Ameter_1, resolution_1, calibration_factor_1);
+//     current_2 = measure_current(&Ameter_2, resolution_2, calibration_factor_2);
+//     if (verbose) Serial.printf("Current 1: %.2f mA, Current 2: %.2f mA\n", get_current1(), get_current2());
+//     if (display) displayLatestCurrents();
+//     limit_current(get_current1(), get_current2());  
+//     delay(10);
+// }
+
+
+//  new, modified version, optimally improved in terms of computation cost/wait
+void loop() {
+    // Handle serial input
+    while (Serial.available()) {
+        char inChar = (char)Serial.read();
+        inputString += inChar;
+        
+        // Check if the input string is complete (ends with a newline)
+        if (inChar == '\n') {
+            stringComplete = true;
         }
-        delay(49);
     }
+    
+    // Process the command if complete
+    if (stringComplete) {
+        command_handler(inputString);
+        inputString = "";         // Clear the string
+        stringComplete = false;   // Reset the flag
+    }
+
+
+
+    unsigned long currentMillis = millis();    
+
+    if (currentMillis - previousMillis >= interval) {
+        previousMillis = currentMillis;  // Update the previous time
 
     current_1 = measure_current(&Ameter_1, resolution_1, calibration_factor_1);
     current_2 = measure_current(&Ameter_2, resolution_2, calibration_factor_2);
-    if (verbose) Serial.printf("Current 1: %.2f mA, Current 2: %.2f mA\n", current_1, current_2);
+    if (verbose) Serial.printf("Current 1: %.2f mA, Current 2: %.2f mA\n", get_current1(), get_current2());
     if (display) displayLatestCurrents();
-    limit_current(current_1, current_2);  
+    limit_current(get_current1(), get_current2());  
     delay(10);
+    }
 }
