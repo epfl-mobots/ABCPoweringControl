@@ -1,3 +1,5 @@
+// Version Aug 27, working on all 3 boards, created by Raphael Kohler
+
 //#include "M5Unified.h" Cyril 15.08.2024: Replace with M5StickCPlus.h
 #include "M5StickCPlus.h"
 //#include "M5GFX.h" Cyril 15.08.2024: Not sure this is needed
@@ -121,11 +123,11 @@ void displayLatestCurrents(){
     M5.Lcd.setCursor(0, 0);
     M5.Lcd.setTextSize(2);
     M5.Lcd.setTextColor(YELLOW);
-    M5.Lcd.printf("Current 1: %.2f mA\n", get_current());
-    M5.Lcd.printf("Current 2: %.2f mA\n", get_current());
+    M5.Lcd.printf("Current 1: %.2f mA\n", get_current1());
+    M5.Lcd.printf("Current 2: %.2f mA\n", get_current2());
 }
 
-void limit_current(float get_current()1(), float get_current2()){
+void limit_current(float current1, float current2){
   if (get_current1() > maximal_current){
     digitalWrite(SWITCH_1_PIN, SWITCH_OFF);
   }
@@ -135,8 +137,9 @@ void limit_current(float get_current()1(), float get_current2()){
 }
 
 void command_handler(String command){
-      // Serial.print("Command was: ");
-      // Serial.println(command);
+      command.trim();
+      Serial.print("Command was: ");
+      Serial.println(command);
       if (command == "Init"){ // clear the serial buffer  
         clearSerialBuffer();
         Serial.println("Buffer successfully reset");
@@ -229,36 +232,13 @@ void setup() {
    clearSerialBuffer();
 }
 
-// // version 27.8.2024 seems to be working well but question was about serial read: does it wait most of the time and not do much at all
-// void loop() {
 
-//     for (int i = 0; i < 10; i++){ // wait for 10 * 50 ms hence update value every second not requested
-//         if (Serial.available() > 0) {
-//             // Read the incoming command
-//             String command = Serial.readStringUntil('\n');
-//             // delay(20);
-//             command_handler(command);
-//         }
-//         delay(49);
-//     }
-
-//     current_1 = measure_current(&Ameter_1, resolution_1, calibration_factor_1);
-//     current_2 = measure_current(&Ameter_2, resolution_2, calibration_factor_2);
-//     if (verbose) Serial.printf("Current 1: %.2f mA, Current 2: %.2f mA\n", get_current1(), get_current2());
-//     if (display) displayLatestCurrents();
-//     limit_current(get_current1(), get_current2());  
-//     delay(10);
-// }
-
-
-//  new, modified version, optimally improved in terms of computation cost/wait
 void loop() {
     // Handle serial input
     while (Serial.available()) {
         char inChar = (char)Serial.read();
         inputString += inChar;
         
-        // Check if the input string is complete (ends with a newline)
         if (inChar == '\n') {
             stringComplete = true;
         }
@@ -267,10 +247,9 @@ void loop() {
     // Process the command if complete
     if (stringComplete) {
         command_handler(inputString);
-        inputString = "";         // Clear the string
-        stringComplete = false;   // Reset the flag
+        inputString = "";         
+        stringComplete = false;  
     }
-
 
 
     unsigned long currentMillis = millis();    
