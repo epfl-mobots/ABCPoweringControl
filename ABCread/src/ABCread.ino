@@ -1,8 +1,6 @@
 // Version Aug 27, working on all 3 boards, created by Raphael Kohler
 
-//#include "M5Unified.h" Cyril 15.08.2024: Replace with M5StickCPlus.h
 #include "M5StickCPlus.h"
-//#include "M5GFX.h" Cyril 15.08.2024: Not sure this is needed
 #include "M5_ADS1115.h"
 #include <Arduino.h>
 
