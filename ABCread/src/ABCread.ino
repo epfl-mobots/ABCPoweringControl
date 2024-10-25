@@ -32,7 +32,6 @@ static float resolution_2 = 0.0;
 static float calibration_factor_2 = 0.0;
 static float current_2 = 0.0;
 
-unsigned long previousMillis = 0;
 const long interval = 500;  // Interval to compare current (in milliseconds)
 
 
@@ -127,7 +126,7 @@ void displayLatestCurrents(){
     }
 }
 
-void ensure_safe_currents(float current1, float current2){
+void ensure_safe_currents(){
   if (abs(current_1) > maximal_current){
     digitalWrite(SWITCH_1_PIN, SWITCH_OPEN);
   }
@@ -176,38 +175,38 @@ void command_handler(String command){
       else if (command == "Switch 1 on"){
       
               digitalWrite(SWITCH_1_PIN, SWITCH_CLOSED);  // Turn on SWITCH 1
-              if (verbose) Serial.println("SWITCH 1 closed (on)");
+              Serial.println("SWITCH 1 closed (on)");
 
       }
       else if (command == "Switch 1 off"){
       
               digitalWrite(SWITCH_1_PIN, SWITCH_OPEN);  // Turn off SWITCH 1
-              if (verbose) Serial.println("SWITCH 1 opened (off)");
+              Serial.println("SWITCH 1 opened (off)");
 
       }
       else if (command == "Switch 2 on"){
       
               digitalWrite(SWITCH_2_PIN, SWITCH_CLOSED);  // Turn on SWITCH 1
-              if (verbose) Serial.println("SWITCH 2 closed (on)");
+              Serial.println("SWITCH 2 closed (on)");
 
       }
       else if (command == "Switch 2 off"){
       
               digitalWrite(SWITCH_2_PIN, SWITCH_OPEN);  // Turn of SWITCH 1
-              if (verbose) Serial.println("SWITCH 2 opened (off)");
+              Serial.println("SWITCH 2 opened (off)");
 
       }
       else if (command == "Get switch 1 state"){
         if (digitalRead(SWITCH_1_PIN) == SWITCH_OPEN)
-            if (verbose) Serial.println("SWITCH 1 open (off)");
+            Serial.println("SWITCH 1 open (off)");
         else if (digitalRead(SWITCH_1_PIN) == SWITCH_CLOSED)
-            if (verbose) Serial.println("SWITCH 1 closed (on)");
+            Serial.println("SWITCH 1 closed (on)");
       }
       else if (command == "Get switch 2 state"){
         if (digitalRead(SWITCH_2_PIN) == SWITCH_OPEN)
-            if (verbose) Serial.println("SWITCH 2 open (off)");
+            Serial.println("SWITCH 2 open (off)");
         else if (digitalRead(SWITCH_2_PIN) == SWITCH_CLOSED)
-            if (verbose) Serial.println("SWITCH 2 closed (on)");
+            Serial.println("SWITCH 2 closed (on)");
       }
       else if (command.startsWith("Max current ")){
         String maxCurrentStr = command.substring(12); // 12 is length of "Max current "
@@ -223,7 +222,6 @@ void command_handler(String command){
 }
 
 void setup() {
-  //Serial.begin(BAUD_RATE); // Initialised in M5.begin()
     M5.begin();
     delay(2000);
     Serial.println("M5StickC started");
@@ -235,6 +233,7 @@ void setup() {
 
 
 void loop() {
+    static unsigned long previousMillis = 0;
     static String inputString = "";  
     static bool stringComplete = false;
     // Handle serial input
@@ -262,9 +261,9 @@ void loop() {
 
         current_1 = measure_current(&Ameter_1, resolution_1, calibration_factor_1);
         current_2 = measure_current(&Ameter_2, resolution_2, calibration_factor_2);
-        if (verbose) Serial.printf("Current 1: %.2f mA, Current 2: %.2f mA\n", get_current1(), get_current2());
+        if (verbose) Serial.printf("Current 1: %.2f mA, Current 2: %.2f mA\n", current_1, current_2);
         if (display) displayLatestCurrents();
-        ensure_safe_currents(get_current1(), get_current2());  // Open switches if current is too high
+        ensure_safe_currents();  // Open switches if either current is too high
         delay(10);
     }
     delay(10);
