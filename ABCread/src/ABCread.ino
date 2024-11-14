@@ -1,4 +1,7 @@
-// Version Aug 27, working on all 3 boards, created by Raphael Kohler
+/*Version Aug 27, working on all 3 boards, created by Raphael Kohler
+This code reads the current from two ammeters and switches them off if the current is too high.
+Can receive commands from a host to send the lastest current values, switch the switches on and off, and set the maximal current.
+*/
 
 #include <Arduino.h>
 #include "M5StickCPlus.h"
