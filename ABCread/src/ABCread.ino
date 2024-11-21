@@ -4,7 +4,7 @@ Can receive commands from a host to send the lastest current values, switch the 
 */
 
 #include <Arduino.h>
-#include "M5StickCPlus.h"
+#include "M5Unified.h"
 #include "M5_ADS1115.h"
 #include "M5_4Relay.h"
 
@@ -50,7 +50,7 @@ const long interval = 750;  // Interval to check new current value (in milliseco
 // Function to select the Multiplexer channel
 // input parameter: i: the channel number to select, between 0 and 5. The channels are as defined by the #define statements above
 void tcaselect(uint8_t i) {
-    if (i != 0 && i != 2 && i != 5) {
+    if (i != AMPMETER_1_CH && i != AMPMETER_2_CH && i != RELAY_CH) {
         if (verbose) Serial.println("Invalid channel number");
         return;
     }
@@ -121,9 +121,7 @@ void init_switches(){
 This function initialises the ammeters by setting the resolution and calibration factors.
 */
 void init_ammeters() {
-    scanI2CAddresses();
     tcaselect(AMPMETER_1_CH); // Select the Ammeter 1 I2C channel
-    scanI2CAddresses();
     delay(1000);
     while (!Ameter_1.begin(&Wire, M5_UNIT_AMETER_I2C_ADDR)) {
         if (verbose) Serial.println("Unit Ameter 1 Init Fail");
@@ -292,12 +290,15 @@ void command_handler(String command){ //TODO: change from 2-Relay to 4-Relay
 }
 
 void setup() {
+    Serial.begin(BAUD_RATE);
+    delay(500);
     Wire.begin(32,33,400000UL); // SDA, SCL, frequency
     delay(50);
 
     M5.begin();
     delay(2000);
     Serial.println("M5StickC started");
+
     init_switches();
     init_ammeters();
 
