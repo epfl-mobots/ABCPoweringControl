@@ -47,7 +47,7 @@ static M5_4Relay relay; // The 4-Relay unit
 
 const long interval = 750;  // Interval to check new current value (in milliseconds)
 
-// Function to select the Multiplexer channel
+// Function to select the I2C Multiplexer channel
 // input parameter: i: the channel number to select, between 0 and 5. The channels are as defined by the #define statements above
 void tcaselect(uint8_t i) {
     if (i != AMPMETER_1_CH && i != AMPMETER_2_CH && i != RELAY_CH) {
@@ -108,7 +108,7 @@ void clearSerialBuffer() {
 This function initialises the switch by ensuring that both switched of the robot are closed (ON).
 */
 void init_switches(){
-    tcaselect(5); 
+    tcaselect(RELAY_CH); 
     relay.begin(Wire); // Initialize the relay
     relay.SyncMode(true); // Sync the LEDs with the relays
     relay.AllOff(); // Turn off all relays
@@ -123,7 +123,7 @@ This function initialises the ammeters by setting the resolution and calibration
 void init_ammeters() {
     tcaselect(AMPMETER_1_CH); // Select the Ammeter 1 I2C channel
     delay(1000);
-    while (!Ameter_1.begin(&Wire, M5_UNIT_AMETER_I2C_ADDR)) {
+    while (!Ameter_1.begin(&Wire, M5_UNIT_AMETER_I2C_ADDR, 32, 33, 400000UL)) {
         if (verbose) Serial.println("Unit Ameter 1 Init Fail");
         delay(2000);
     }
@@ -142,7 +142,7 @@ void init_ammeters() {
     }
 
     tcaselect(AMPMETER_2_CH); // Select the Ammeter 2 I2C channel
-    while (!Ameter_2.begin(&Wire, M5_UNIT_AMETER_I2C_ADDR)) {
+    while (!Ameter_2.begin(&Wire, M5_UNIT_AMETER_I2C_ADDR, 32, 33, 400000UL)) {
         if (verbose) Serial.println("Unit Ameter 2 Init Fail");
         delay(2000);
     }
@@ -299,8 +299,8 @@ void setup() {
     delay(2000);
     Serial.println("M5StickC started");
 
-    init_switches();
     init_ammeters();
+    init_switches();
 
     clearSerialBuffer();
 }
