@@ -29,7 +29,7 @@ Can receive commands from a host to send the lastest current values, switch the 
 #define SWITCH_CLOSED   HIGH
 #define SWITCH_OPEN     LOW
 
-const static bool verbose = true;
+const static bool verbose = false;
 const static bool display = true;
 static float maximal_current = 2000; // maximal current in mA
 
@@ -215,7 +215,8 @@ void command_handler(String command){ //TODO: change from 2-Relay to 4-Relay
         init_switches();
         Serial.println("Buffer successfully reset, switches turned on");
     }
-    else if (command == "Measure current 0"){
+    
+    else if (command == "Measure currents"){
         Serial.print("Measuring current -> ");
         current_1 = measure_current(AMPMETER_1_CH, &Ameter_1, resolution_1, calibration_factor_1);
         current_2 = measure_current(AMPMETER_2_CH, &Ameter_2, resolution_2, calibration_factor_2);
@@ -226,6 +227,7 @@ void command_handler(String command){ //TODO: change from 2-Relay to 4-Relay
         Serial.print(current_2);
         Serial.println("mA");
     }
+
     else if (command == "Measure current 1"){
         Serial.print("Measuring current 1 -> ");
         current_1 = measure_current(AMPMETER_1_CH, &Ameter_1, resolution_1, calibration_factor_1);
@@ -233,6 +235,7 @@ void command_handler(String command){ //TODO: change from 2-Relay to 4-Relay
         Serial.print(current_1);
         Serial.println("mA");
     }
+
     else if (command == "Measure current 2"){
         Serial.print("Measuring current 2 -> ");
         current_2 = measure_current(AMPMETER_2_CH, &Ameter_2, resolution_2, calibration_factor_2);
@@ -240,7 +243,8 @@ void command_handler(String command){ //TODO: change from 2-Relay to 4-Relay
         Serial.print(current_2);
         Serial.println("mA");        
     }
-    else if (command.startsWith("Switch ")){
+
+    else if (command.startsWith("Switch ")){ // Commands to open or close swtiched, e.g. Switch 2 off
         String switchNumberStr = command.substring(7); // 7 is length of "Switch "
         int switchNumber = switchNumberStr.toInt(); // Convert to int
         if (switchNumber < 1 || switchNumber > 4){
@@ -265,20 +269,51 @@ void command_handler(String command){ //TODO: change from 2-Relay to 4-Relay
         }
         else Serial.println("Command not recognized");
     }
-    else if (command.startsWith("Get switch ") && command.endsWith(" state")){
-        String switchNumberStr = command.substring(11); // 11 is the start index of the switch number
-        int switchNumber = switchNumberStr.toInt(); // Convert to int
-        if (switchNumber < 1 || switchNumber > 4){
-            Serial.println("Invalid switch number");
-            return;
-        }
+
+    else if (command.startsWith("Get switch state")){ // Command to get the state of a switch, e.g. Get switch 2 state
         tcaselect(RELAY_CH);
-        int switchState = relay.ReadState() & (1 << (switchNumber - 1));
-        if (switchState == SWITCH_OPEN)
-            Serial.printf("SWITCH %d open (off)\n", switchNumber);
-        else if (switchState == SWITCH_CLOSED)
-            Serial.printf("SWITCH %d closed (on)\n", switchNumber);
+        uint16_t state=relay.ReadState(); //read 0x10 & 0x11 registers
+        if(verbose){
+            Serial.print("Switch state: ");
+            Serial.println(state, BIN);
+        }
+
+        bool switchStates[4];
+        for (int i = 1; i <= 4; i++){
+            int switchState = state & (1 << (i - 1));
+            if (switchState > 0) switchState = SWITCH_CLOSED;
+            else if (switchState == 0) switchState = SWITCH_OPEN;
+            else {
+                Serial.print("Error reading switch state:");
+                Serial.println(switchState);
+                continue;
+            }
+            switchStates[i - 1] = switchState;
+        }
+        if (command.endsWith("state")){
+            // Print the state of all switches
+            for (int i = 0; i < 4; i++){
+                if (switchStates[i] == SWITCH_OPEN)
+                    Serial.printf("SWITCH %d is open (off)\n", i + 1);
+                else if (switchStates[i] == SWITCH_CLOSED)
+                    Serial.printf("SWITCH %d is closed (on)\n", i + 1);
+            }
+        }
+        else{
+            String switchNumberStr = command.substring(11); // 11 is the start index of the switch number
+            int switchNumber = switchNumberStr.toInt(); // Convert to int
+            if (switchNumber < 1 || switchNumber > 4){
+                Serial.println("Invalid switch number");
+                return;
+            }
+
+            if (switchStates[switchNumber - 1] == SWITCH_OPEN)
+                Serial.printf("SWITCH %d is open (off)\n", switchNumber);
+            else if (switchStates[switchNumber - 1] == SWITCH_CLOSED)
+                Serial.printf("SWITCH %d is closed (on)\n", switchNumber);
+        }
     }
+
     else if (command.startsWith("Max current ")){
         String maxCurrentStr = command.substring(12, command.length()); // 12 is length of "Max current "
         float maxCurrentValue = maxCurrentStr.toFloat(); // Convert to float        
@@ -286,6 +321,7 @@ void command_handler(String command){ //TODO: change from 2-Relay to 4-Relay
         Serial.print("Maximal current set to: ");
         Serial.println(maximal_current);
     }
+
     else Serial.println("Command not recognized");
 }
 
