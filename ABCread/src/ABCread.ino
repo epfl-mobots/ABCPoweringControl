@@ -3,9 +3,7 @@ This code reads the current from two ammeters and switches them off if the curre
 Can receive commands from a host to send the lastest current values, switch the switches on and off, and set the maximal current.
 */
 
-//#include <Arduino.h>
-#include <Wire.h>
-#include "M5Unified.h"
+#include "M5StickCPlus.h" // Wire and Arduino libs are included in this library
 #include "M5_ADS1115.h"
 #include "M5_4Relay.h"
 
@@ -327,20 +325,13 @@ void command_handler(String command){
 }
 
 void setup() {
-    Serial.begin(BAUD_RATE);
-    while (!Serial) {
-        ; // wait for serial port to connect. Needed for native USB port only
-    }
-    Serial.println("Serial started");
-
-    M5.begin();
+    M5.begin(); // This will also init Serial and Wire1 (21,22) for internal I2C communication
     delay(1000);
     Serial.println("M5StickC started");
 
-    Wire.begin(32,33,400000UL); // SDA, SCL, frequency
+    Wire.begin(32,33,400000UL); // SDA, SCL, frequency. Wire used for external I2C communication
     delay(50);
     Serial.println("External wire started");
-
 
     init_ammeters();
     init_switches();
