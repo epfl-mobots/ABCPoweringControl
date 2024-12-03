@@ -271,7 +271,7 @@ void command_handler(String command){
         else Serial.println("Switch state not recognized");
     }
 
-    else if (command.startsWith("Get switch state")){ // Command to get the state of a switch, e.g. Get switch 2 state
+    else if (command.startsWith("Get switch state")){ // Command to get the state of a switch, e.g. Get switch state 2
         tcaselect(RELAY_CH);
         uint16_t state=relay.ReadState(); //read 0x10 & 0x11 registers
         if(verbose){
@@ -301,7 +301,7 @@ void command_handler(String command){
             }
         }
         else{
-            String switchNumberStr = command.substring(11); // 11 is the start index of the switch number
+            String switchNumberStr = command.substring(17); // 17 is the start index of the switch number
             int switchNumber = switchNumberStr.toInt(); // Convert to int
             if (switchNumber < 1 || switchNumber > 4){
                 Serial.println("Invalid switch number");
