@@ -3,7 +3,8 @@ This code reads the current from two ammeters and switches them off if the curre
 Can receive commands from a host to send the lastest current values, switch the switches on and off, and set the maximal current.
 */
 
-#include <Arduino.h>
+//#include <Arduino.h>
+#include <Wire.h>
 #include "M5Unified.h"
 #include "M5_ADS1115.h"
 #include "M5_4Relay.h"
@@ -122,10 +123,10 @@ This function initialises the ammeters by setting the resolution and calibration
 */
 void init_ammeters() {
     tcaselect(AMPMETER_1_CH); // Select the Ammeter 1 I2C channel
-    delay(1000);
+    delay(500);
     while (!Ameter_1.begin(&Wire, M5_UNIT_AMETER_I2C_ADDR, 32, 33, 400000UL)) {
         if (verbose) Serial.println("Unit Ameter 1 Init Fail");
-        delay(2000);
+        delay(1000);
     }
     Ameter_1.setEEPROMAddr(M5_UNIT_AMETER_EEPROM_I2C_ADDR);
     Ameter_1.setMode(ADS1115_MODE_SINGLESHOT);
@@ -144,7 +145,7 @@ void init_ammeters() {
     tcaselect(AMPMETER_2_CH); // Select the Ammeter 2 I2C channel
     while (!Ameter_2.begin(&Wire, M5_UNIT_AMETER_I2C_ADDR, 32, 33, 400000UL)) {
         if (verbose) Serial.println("Unit Ameter 2 Init Fail");
-        delay(2000);
+        delay(1000);
     }
     Ameter_2.setEEPROMAddr(M5_UNIT_AMETER_EEPROM_I2C_ADDR);
     Ameter_2.setMode(ADS1115_MODE_SINGLESHOT);
@@ -203,7 +204,7 @@ void ensure_safe_currents(){
   } 
 }
 
-void command_handler(String command){ //TODO: change from 2-Relay to 4-Relay
+void command_handler(String command){
     command.trim();
     if (verbose){
         Serial.print("Received command: ");
@@ -267,7 +268,7 @@ void command_handler(String command){ //TODO: change from 2-Relay to 4-Relay
             Serial.print(switchNumber);
             Serial.println(" opened (off)");
         }
-        else Serial.println("Command not recognized");
+        else Serial.println("Switch state not recognized");
     }
 
     else if (command.startsWith("Get switch state")){ // Command to get the state of a switch, e.g. Get switch 2 state
@@ -327,13 +328,19 @@ void command_handler(String command){ //TODO: change from 2-Relay to 4-Relay
 
 void setup() {
     Serial.begin(BAUD_RATE);
-    delay(500);
-    Wire.begin(32,33,400000UL); // SDA, SCL, frequency
-    delay(50);
+    while (!Serial) {
+        ; // wait for serial port to connect. Needed for native USB port only
+    }
+    Serial.println("Serial started");
 
     M5.begin();
-    delay(2000);
+    delay(1000);
     Serial.println("M5StickC started");
+
+    Wire.begin(32,33,400000UL); // SDA, SCL, frequency
+    delay(50);
+    Serial.println("External wire started");
+
 
     init_ammeters();
     init_switches();
@@ -373,7 +380,6 @@ void loop() {
         if (verbose) Serial.printf("Current 1: %.2f mA, Current 2: %.2f mA\n", current_1, current_2);
         if (display) displayLatestCurrents();
         ensure_safe_currents();  // Open switches if either current is too high
-        delay(10);
     }
-    delay(20);
+    delay(30);
 }
