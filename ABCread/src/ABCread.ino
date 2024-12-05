@@ -20,6 +20,7 @@ Can receive commands from a host to send the lastest current values, switch the 
 //Relay channels. The -1 is to convert the channel number to the index in the relay array
 #define ROBOT1_RELAY_CH 4 -1
 #define ROBOT2_RELAY_CH 3 -1
+#define EMPTY_RELAY_CH  2 -1
 #define LEDS_RELAY_CH   1 -1 
 
 #define M5_UNIT_AMETER_EEPROM_I2C_ADDR 0x51
@@ -110,10 +111,12 @@ void init_switches(){
     tcaselect(RELAY_CH); 
     relay.begin(Wire); // Initialize the relay
     relay.SyncMode(true); // Sync the LEDs with the relays
-    relay.AllOff(); // Turn off all relays
     // Close switches ROBOT1_RELAY_CH and ROBOT2_RELAY_CH only
     relay.Write4Relay(ROBOT1_RELAY_CH, SWITCH_CLOSED);
     relay.Write4Relay(ROBOT2_RELAY_CH, SWITCH_CLOSED);
+    //Open empty switch
+    relay.Write4Relay(EMPTY_RELAY_CH, SWITCH_OPEN);
+    // And don't mess with the LEDs switch
 }
 
 /*
