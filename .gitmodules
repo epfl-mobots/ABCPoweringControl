@@ -1,0 +1,3 @@
+[submodule "ABCread/lib/M5StickC-Plus"]
+	path = ABCread/lib/M5StickC-Plus
+	url = https://github.com/m5stack/M5StickC-Plus.git
