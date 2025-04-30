@@ -1,11 +1,45 @@
+/* Version Fall 2025, modified from Raphael Kohler's code by Romain Lattion
+This code controls 3 4-Relays units from M5stack, all connected to a multiplexer (PaHub v2.1).
+
+NOTE:   In this code, "closed" means the relay contact is made — current can flow.
+        "open" means the contact is broken — no current flows.
+
+Recognized commands from serial:
+
+        - "Relay x open/close"                          : Open/close relay x
+        - "Relay x open/close, Relay y open/close"      : Open/close multiple relays in one command
+        - "OpenAll"                                     : Opens all relays
+        - "CloseAll"                                    : Closes all relays
+        - "Status"                                      : Prints the state (open/closed) of all relays
+
+M5StickC-Plus button commands:
+
+        - M5 button (A)                : Navigate through relays 1–10 (highlight selected one)
+        - Right button (B)             : Toggle open/closed state of the selected relay
+        - M5 button hold for 5 sec     : Alternates between CloseAll and OpenAll relays
+
+Relay Mapping:
+
+        - 3 M5Stack 4-Relay Units:
+            • Unit 1: Relays 1–4 (PaHub channel 0)
+            • Unit 2: Relays 5–8 (PaHub channel 1)
+            • Unit 3: Relays 9–10 (PaHub channel 2)
+
+Display:
+
+        - Shows all relay states and highlights the currently selected relay
+        - Visual guide for buttons displayed on LCD screen
+*/
+
+
 #include "M5StickCPlus.h" // Includes Wire and Arduino libraries
 #include "M5_4Relay.h"
 
 #define BAUD_RATE 115200 // For communication with Raspberry Pi
 #define PAHUB_ADDR 0x70  // Unit PaHub v2.1 (PCA9548AP) I2C address
 
-#define SWITCH_CLOSED HIGH
-#define SWITCH_OPEN  LOW
+#define SWITCH_CLOSED HIGH  // Relay energized (contact closed, current flows)
+#define SWITCH_OPEN LOW   // Relay de-energized (contact open, no current)
 
 const static bool verbose = false;
 const static bool display = true;
@@ -35,12 +69,12 @@ static uint8_t selectedRelay = 1;
 static bool longPressCloseAll = true;
 
 // LCD dimensions: 135x240 pixels
-int rectWidth = 120; // Wider rectangle
+int rectWidth = 120;
 int rectHeight = 60;
-int rectX = (135 - rectWidth) / 2; // Center horizontally: (135 - 120) / 2 = 7
-int rectY = 7; // 7-pixel margin from top (matches side margin)
+int rectX = (135 - rectWidth) / 2;
+int rectY = 7;
 
-static M5_4Relay relay; // Single instance reused across channels
+static M5_4Relay relay;
 
 void clearSerialBuffer() {
     while (Serial.available() > 0) Serial.read();
@@ -78,16 +112,13 @@ void init_relays() {
 void displayAllRelayStates() {
     if (!display) return;
     M5.Lcd.fillScreen(BLACK);
-    // Draw rectangle near top
     M5.Lcd.drawRect(rectX, rectY, rectWidth, rectHeight, WHITE);
-
-    // Draw "RELAYS" and "STATES" inside the rectangle
     M5.Lcd.setTextSize(2);
     M5.Lcd.setTextColor(WHITE);
-    // Calculate text position to center both lines within the rectangle
-    int textX = rectX + (rectWidth - 6 * 12) / 2 - 4; // 6 chars for "RELAYS", 12 pixels each, with -4 adjustment
-    int textY1 = rectY + (rectHeight - 2 * 16) / 2; // Top line ("RELAYS"), 2 lines of 16 pixels
-    int textY2 = textY1 + 16; // Bottom line ("STATES"), 16 pixels below
+
+    int textX = rectX + (rectWidth - 6 * 12) / 2 - 4;
+    int textY1 = rectY + (rectHeight - 2 * 16) / 2;
+    int textY2 = textY1 + 16;
 
     M5.Lcd.setCursor(textX+3, textY1);
     M5.Lcd.print("RELAYS");
@@ -96,7 +127,6 @@ void displayAllRelayStates() {
     M5.Lcd.setTextSize(1);
     M5.Lcd.print("\n");
     
-
     for (int i = 0; i < 10; i++) {
         uint8_t unit = relayMapping[i].unit - 1;
         uint8_t relay = relayMapping[i].relay - 1;
@@ -123,7 +153,7 @@ void displayAllRelayStates() {
     M5.Lcd.setTextColor(RED);
     M5.Lcd.print("    Right");
     M5.Lcd.setTextColor(WHITE);
-    M5.Lcd.println(":Invert");
+    M5.Lcd.println(":Toggle");
     M5.Lcd.setTextColor(RED);
     M5.Lcd.print("    Hold M5 (5s)");
     M5.Lcd.setTextColor(WHITE);
@@ -182,6 +212,7 @@ void processSingleRelayCommand(String command) {
 
 // Get status of all relays
 void getRelayStatus() {
+
     // Optionally sync relayStates with hardware
     for (uint8_t i = 0; i < 3; i++) {
         paHubSelect(i);
@@ -266,12 +297,12 @@ void command_handler(String command) {
 }
 
 void setup() {
-    M5.begin(); // Initializes Serial and internal I2C (Wire1)
+    M5.begin();
     delay(1000);
     Serial.begin(BAUD_RATE);
     Serial.println("M5StickC Relay Controller Started");
 
-    Wire.begin(32, 33, 400000UL); // External I2C: SDA, SCL, frequency
+    Wire.begin(32, 33, 400000UL);
     delay(50);
     Serial.println("External I2C started");
 
@@ -281,16 +312,14 @@ void setup() {
     M5.Lcd.setTextSize(2);
     M5.Lcd.setTextColor(WHITE);
 
-    // Draw rectangle near top
     M5.Lcd.drawRect(rectX, rectY, rectWidth, rectHeight, WHITE);
 
-    // Draw "STARTING" inside the rectangle
     M5.Lcd.setTextSize(2);
     M5.Lcd.setTextColor(WHITE);
-    // Calculate text position to center it within the rectangle
-    int textY1 = rectY + (rectHeight - 2 * 16) / 2; // Top line ("RELAYS"), 2 lines of 16 pixels
-    int textY2 = textY1 + 16; // Bottom line ("STATES"), 16 pixels below
-    int textX = rectX + (rectWidth - 7 * 12) / 2; // Approx 12 pixels per character, 7 chars
+
+    int textY1 = rectY + (rectHeight - 2 * 16) / 2;
+    int textY2 = textY1 + 16;
+    int textX = rectX + (rectWidth - 7 * 12) / 2;
 
     M5.Lcd.setCursor(textX - 4, textY1);
     M5.Lcd.print("STARTING");
@@ -301,6 +330,7 @@ void setup() {
     M5.Lcd.print(".");
     delay(500);
     M5.Lcd.print(".");
+
     // Initialize relays
     init_relays();
     clearSerialBuffer();
@@ -355,6 +385,5 @@ void loop() {
     }
 
     delay(10); // Small delay to prevent tight looping
-
 
 }
