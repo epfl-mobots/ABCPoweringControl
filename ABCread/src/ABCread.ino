@@ -4,6 +4,9 @@
 #define BAUD_RATE 115200 // For communication with Raspberry Pi
 #define PAHUB_ADDR 0x70  // Unit PaHub v2.1 (PCA9548AP) I2C address
 
+#define SWITCH_CLOSED HIGH
+#define SWITCH_OPEN  LOW
+
 const static bool verbose = false;
 const static bool display = true;
 
@@ -26,8 +29,16 @@ static bool relayStates[3][4] = {
     {false, false, false, false}  // Unit 3: relays 1-2 (3-4 unused)
 };
 
-#define SWITCH_CLOSED HIGH
-#define SWITCH_OPEN  LOW
+// Track selected relay for button control (1 to 10)
+static uint8_t selectedRelay = 1;
+// Track state for long press (true = close all, false = open all)
+static bool longPressCloseAll = true;
+
+// LCD dimensions: 135x240 pixels
+int rectWidth = 120; // Wider rectangle
+int rectHeight = 60;
+int rectX = (135 - rectWidth) / 2; // Center horizontally: (135 - 120) / 2 = 7
+int rectY = 7; // 7-pixel margin from top (matches side margin)
 
 static M5_4Relay relay; // Single instance reused across channels
 
@@ -63,25 +74,60 @@ void init_relays() {
     if (display) displayAllRelayStates();
 }
 
-// Display all relay states on LCD
+// Display all relay states on LCD with instructions
 void displayAllRelayStates() {
     if (!display) return;
-
     M5.Lcd.fillScreen(BLACK);
-    M5.Lcd.setCursor(10, 10);
+    // Draw rectangle near top
+    M5.Lcd.drawRect(rectX, rectY, rectWidth, rectHeight, WHITE);
+
+    // Draw "RELAYS" and "STATES" inside the rectangle
     M5.Lcd.setTextSize(2);
     M5.Lcd.setTextColor(WHITE);
-    M5.Lcd.println("\n___________\n\n   Relays\n   States\n___________\n");
+    // Calculate text position to center both lines within the rectangle
+    int textX = rectX + (rectWidth - 6 * 12) / 2 - 4; // 6 chars for "RELAYS", 12 pixels each, with -4 adjustment
+    int textY1 = rectY + (rectHeight - 2 * 16) / 2; // Top line ("RELAYS"), 2 lines of 16 pixels
+    int textY2 = textY1 + 16; // Bottom line ("STATES"), 16 pixels below
+
+    M5.Lcd.setCursor(textX+3, textY1);
+    M5.Lcd.print("RELAYS");
+    M5.Lcd.setCursor(textX+3, textY2);
+    M5.Lcd.print("STATES\n\n");
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.print("\n");
+    
 
     for (int i = 0; i < 10; i++) {
         uint8_t unit = relayMapping[i].unit - 1;
         uint8_t relay = relayMapping[i].relay - 1;
         M5.Lcd.setTextSize(1.7);
-        M5.Lcd.print("Relay ");
+        if (i + 1 == selectedRelay) {
+            M5.Lcd.setTextColor(YELLOW); // Highlight selected relay
+        } else {
+            M5.Lcd.setTextColor(WHITE);
+        }
+
+        M5.Lcd.print("    Relay ");
         M5.Lcd.print(i + 1);
         M5.Lcd.print(": ");
         M5.Lcd.println(relayStates[unit][relay] ? "Closed" : "Open");
     }
+    M5.Lcd.print("\n");
+    M5.Lcd.setTextSize(2);
+    M5.Lcd.setTextColor(RED);
+    M5.Lcd.print("  BUTTONS");
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.print("\n\n\n    M5");
+    M5.Lcd.setTextColor(WHITE);
+    M5.Lcd.println(":Navigate");
+    M5.Lcd.setTextColor(RED);
+    M5.Lcd.print("    Right");
+    M5.Lcd.setTextColor(WHITE);
+    M5.Lcd.println(":Invert");
+    M5.Lcd.setTextColor(RED);
+    M5.Lcd.print("    Hold M5 (5s)");
+    M5.Lcd.setTextColor(WHITE);
+    M5.Lcd.println(":\n    Close/Open all");
 }
 
 // Set relay state (true for closed, false for open)
@@ -129,7 +175,6 @@ void processSingleRelayCommand(String command) {
         setRelay(relayNum, false);
         Serial.printf("Relay %d opened\n", relayNum);
         if (display) displayAllRelayStates();
-
     } else {
         Serial.println("Invalid action (use close or open)");
     }
@@ -235,18 +280,67 @@ void setup() {
     M5.Lcd.setCursor(10, 10);
     M5.Lcd.setTextSize(2);
     M5.Lcd.setTextColor(WHITE);
+
+    // Draw rectangle near top
+    M5.Lcd.drawRect(rectX, rectY, rectWidth, rectHeight, WHITE);
+
+    // Draw "STARTING" inside the rectangle
+    M5.Lcd.setTextSize(2);
+    M5.Lcd.setTextColor(WHITE);
+    // Calculate text position to center it within the rectangle
+    int textY1 = rectY + (rectHeight - 2 * 16) / 2; // Top line ("RELAYS"), 2 lines of 16 pixels
+    int textY2 = textY1 + 16; // Bottom line ("STATES"), 16 pixels below
+    int textX = rectX + (rectWidth - 7 * 12) / 2; // Approx 12 pixels per character, 7 chars
+
+    M5.Lcd.setCursor(textX - 4, textY1);
     M5.Lcd.print("STARTING");
-    delay(2000);
+    M5.Lcd.setCursor(textX+3, textY2);
+    delay(500);
+    M5.Lcd.print("  .");
+    delay(500);
+    M5.Lcd.print(".");
+    delay(500);
+    M5.Lcd.print(".");
     // Initialize relays
     init_relays();
     clearSerialBuffer();
 }
 
 void loop() {
-    static String inputString = "";
-    static bool stringComplete = false;
+    M5.update(); // Update button states
+
+    // Handle button A (cycle through relays)
+    if (M5.BtnA.wasReleased()) {
+        selectedRelay = (selectedRelay % 10) + 1; // Cycle from 1 to 10
+        if (verbose) Serial.printf("Selected Relay %d\n", selectedRelay);
+        if (display) displayAllRelayStates(); // Show all states with selected relay highlighted
+    }
+
+    // Handle button B (toggle selected relay state)
+    if (M5.BtnB.wasReleased()) {
+        uint8_t unit = relayMapping[selectedRelay - 1].unit - 1;
+        uint8_t relay = relayMapping[selectedRelay - 1].relay - 1;
+        bool currentState = relayStates[unit][relay];
+        setRelay(selectedRelay, !currentState); // Toggle state
+        Serial.printf("Relay %d %s\n", selectedRelay, !currentState ? "closed" : "opened");
+        if (display) displayAllRelayStates(); // Show all states
+    }
+
+    // Handle long press on button A (close/open all relays)
+    if (M5.BtnA.wasReleasefor(3500)) {
+        if (longPressCloseAll) {
+            command_handler("CloseAll");
+            Serial.println("All relays closed (long press)");
+        } else {
+            command_handler("OpenAll");
+            Serial.println("All relays opened (long press)");
+        }
+        longPressCloseAll = !longPressCloseAll; // Toggle for next long press
+    }
 
     // Handle serial input
+    static String inputString = "";
+    static bool stringComplete = false;
     while (Serial.available()) {
         char inChar = (char)Serial.read();
         inputString += inChar;
@@ -261,4 +355,6 @@ void loop() {
     }
 
     delay(10); // Small delay to prevent tight looping
+
+
 }
