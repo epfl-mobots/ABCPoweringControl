@@ -11,6 +11,7 @@ Recognized commands from serial:
         - "OpenAll"                                     : Opens all relays
         - "CloseAll"                                    : Closes all relays
         - "Status"                                      : Prints the state (open/closed) of all relays
+        - "Init"                                        : Reset buffer, initialize all relays as open
 
 M5StickC-Plus button commands:
 
