@@ -12,6 +12,7 @@ Recognized commands from serial:
         - "CloseAll"                                    : Closes all relays
         - "Status"                                      : Prints the state (open/closed) of all relays
         - "Init"                                        : Reset buffer, initialize all relays as open
+        - "Get name"                                    : Returns the device name "M5Stick1"
 
 M5StickC-Plus button commands:
 
@@ -32,9 +33,11 @@ Display:
         - Visual guide for buttons displayed on LCD screen
 */
 
-
 #include "M5StickCPlus.h" // Includes Wire and Arduino libraries
 #include "M5_4Relay.h"
+
+// Unique device name for this M5StickC Plus
+const char* DEVICE_NAME = "M5Stick1";
 
 #define BAUD_RATE 115200 // For communication with Raspberry Pi
 #define PAHUB_ADDR 0x70  // Unit PaHub v2.1 (PCA9548AP) I2C address
@@ -241,7 +244,9 @@ void command_handler(String command) {
         Serial.println(command);
     }
 
-    if (command == "Init") {
+    if (command == "Get name") {
+        Serial.println(DEVICE_NAME);
+    } else if (command == "Init") {
         clearSerialBuffer();
         init_relays();
         Serial.println("Buffer reset, relays initialized to open");
@@ -294,6 +299,7 @@ void command_handler(String command) {
         Serial.println("Relay X open/close - Control single relay (X=1-10)");
         Serial.println("Relay X open, Relay Y close,... - Multiple relay commands");
         Serial.println("Status - Show current relay states");
+        Serial.println("Get name - Return device name");
     }
 }
 
