@@ -57,7 +57,7 @@ struct RelayMap {
 static const RelayMap relayMapping[10] = {
     {1, 1, 0}, {1, 2, 0}, {1, 3, 0}, {1, 4, 0}, // Unit 1, relays 1-4, channel 0
     {2, 1, 1}, {2, 2, 1}, {2, 3, 1}, {2, 4, 1}, // Unit 2, relays 1-4, channel 1
-    {3, 1, 2}, {3, 2, 2}                       // Unit 3, relays 1-2, channel 2
+    {3, 1, 3}, {3, 2, 3}                       // Unit 3, relays 1-2, channel 3 (channel 2 skipped for easier wiring)
 };
 
 // Track states of all relays [unit][relay]
@@ -94,22 +94,6 @@ void paHubSelect(uint8_t channel) {
     Wire.beginTransmission(PAHUB_ADDR);
     Wire.write(1 << channel);
     Wire.endTransmission();
-}
-
-// Initialize relays to open state
-void init_relays() {
-    for (uint8_t i = 0; i < 3; i++) {
-        paHubSelect(i); // Select unit's channel
-        relay.begin(Wire); // Initialize relay unit
-        relay.SyncMode(true); // Sync LEDs with relays
-        for (uint8_t j = 0; j < 4; j++) {
-            if (i == 2 && j >= 2) continue; // Skip relays 3-4 on unit 3
-            relay.Write4Relay(j, SWITCH_OPEN);
-            relayStates[i][j] = false;
-        }
-    }
-    if (verbose) Serial.println("Relays initialized to open");
-    if (display) displayAllRelayStates();
 }
 
 // Display all relay states on LCD with instructions
@@ -162,6 +146,23 @@ void displayAllRelayStates() {
     M5.Lcd.print("    Hold M5 (5s)");
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.println(":\n    Close/Open all");
+}
+
+
+// Initialize relays to open state
+void init_relays() {
+    for (uint8_t i = 0; i < 3; i++) {
+        paHubSelect(i); // Select unit's channel
+        relay.begin(Wire); // Initialize relay unit
+        relay.SyncMode(true); // Sync LEDs with relays
+        for (uint8_t j = 0; j < 4; j++) {
+            if (i == 2 && j >= 2) continue; // Skip relays 3-4 on unit 3
+            relay.Write4Relay(j, SWITCH_OPEN);
+            relayStates[i][j] = false;
+        }
+    }
+    if (verbose) Serial.println("Relays initialized to open");
+    if (display) displayAllRelayStates();
 }
 
 // Set relay state (true for closed, false for open)
