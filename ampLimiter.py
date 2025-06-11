@@ -37,7 +37,6 @@ if __name__ == "__main__":
         send_command(command)
         # read_response()
         time.sleep(5)
-    set_max_current(700)
     set_max_current(1200)
     time.sleep(10)
 
