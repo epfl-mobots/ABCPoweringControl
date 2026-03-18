@@ -52,13 +52,16 @@ const static bool display = true;
 struct RelayMap {
     uint8_t unit;    // User-facing unit number (1-3)
     uint8_t relay;   // User-facing relay number (1-4)
-    uint8_t channel; // PaHub channel (0-2)
+    uint8_t channel; // PaHub channel (0-7)
 };
 static const RelayMap relayMapping[10] = {
     {1, 1, 0}, {1, 2, 0}, {1, 3, 0}, {1, 4, 0}, // Unit 1, relays 1-4, channel 0
     {2, 1, 1}, {2, 2, 1}, {2, 3, 1}, {2, 4, 1}, // Unit 2, relays 1-4, channel 1
     {3, 1, 3}, {3, 2, 3}                       // Unit 3, relays 1-2, channel 3 (channel 2 skipped for easier wiring)
 };
+
+// Unit index (0..2) to PaHub channel mapping.
+static const uint8_t unitChannels[3] = {0, 1, 3};
 
 // Track states of all relays [unit][relay]
 static bool relayStates[3][4] = {
@@ -149,10 +152,10 @@ void displayAllRelayStates() {
 }
 
 
-// Initialize relays to open state
+// Initialise relays to open state
 void init_relays() {
-    for (uint8_t i = 0; i < 3; i++) {
-        paHubSelect(i); // Select unit's channel
+    for (uint8_t i = 0; i <= 2; i++) {
+        paHubSelect(unitChannels[i]); // Select this unit's PaHub channel
         relay.begin(Wire); // Initialize relay unit
         relay.SyncMode(true); // Sync LEDs with relays
         for (uint8_t j = 0; j < 4; j++) {
@@ -220,7 +223,7 @@ void getRelayStatus() {
 
     // Optionally sync relayStates with hardware
     for (uint8_t i = 0; i < 3; i++) {
-        paHubSelect(i);
+        paHubSelect(unitChannels[i]);
         relay.begin(Wire);
         uint16_t state = relay.ReadState();
         for (uint8_t j = 0; j < 4; j++) {
@@ -250,7 +253,7 @@ void command_handler(String command) {
     } else if (command == "Init") {
         clearSerialBuffer();
         init_relays();
-        Serial.println("Buffer reset, relays initialized to open");
+        Serial.println("Buffer reset, relays initialised to open");
     } else if (command == "CloseAll") {
         for (uint8_t i = 1; i <= 10; i++) {
             setRelay(i, true);
