@@ -1,1 +1,1 @@
-This is the code that runs on both the M5Stick and RPi to jointly control the powering of the ABCs. Ampmeters are regularly checked and the switches are opened if the current exceeds the set threshold current. 
+This is the code that runs on both the M5Stick and RPi to jointly control the powering of the RHCs. Ampmeters are regularly checked and the switches are opened if the current exceeds the set threshold current. 
