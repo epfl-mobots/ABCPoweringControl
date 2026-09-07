@@ -156,8 +156,7 @@ void displayAllRelayStates() {
 void init_relays() {
     for (uint8_t i = 0; i <= 2; i++) {
         paHubSelect(unitChannels[i]); // Select this unit's PaHub channel
-        relay.begin(Wire); // Initialize relay unit
-        relay.SyncMode(true); // Sync LEDs with relays
+        relay.SyncMode(true); // Sync LEDs with relays (per-unit register, set once here)
         for (uint8_t j = 0; j < 4; j++) {
             if (i == 2 && j >= 2) continue; // Skip relays 3-4 on unit 3
             relay.Write4Relay(j, SWITCH_OPEN);
@@ -183,8 +182,6 @@ void setRelay(uint8_t relayNum, bool state) {
     relayStates[unit][relayIndex] = state; // Update state tracker
 
     paHubSelect(channel); // Select PaHub channel
-    relay.begin(Wire); // Ensure relay is initialized for this channel
-    relay.SyncMode(true); // Ensure sync mode
     relay.Write4Relay(relayIndex, state ? SWITCH_CLOSED : SWITCH_OPEN);
 
     if (verbose) Serial.printf("Relay %d set to %s\n", relayNum, state ? "Closed" : "Open");
@@ -224,7 +221,6 @@ void getRelayStatus() {
     // Optionally sync relayStates with hardware
     for (uint8_t i = 0; i < 3; i++) {
         paHubSelect(unitChannels[i]);
-        relay.begin(Wire);
         uint16_t state = relay.ReadState();
         for (uint8_t j = 0; j < 4; j++) {
             if (i == 2 && j >= 2) continue; // Skip relays 3-4 on unit 3
@@ -315,6 +311,7 @@ void setup() {
 
     Wire.begin(32, 33, 400000UL);
     delay(50);
+    relay.begin(Wire); // Bind the relay driver to Wire once; never re-run begin() per command (see init_relays/setRelay)
     Serial.println("External I2C started");
 
     // Initialize display
